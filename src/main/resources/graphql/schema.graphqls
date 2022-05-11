@@ -19,3 +19,17 @@ type Customer {
 type Mutation {
     addCustomer(firstName: String, lastName: String) : Customer
 }
+
+enum CustomerEventType{
+    UPDATE
+    DELETE
+}
+
+type CustomerEvent {
+    customer: Customer
+    event: CustomerEventType
+}
+
+type Subscription {
+    customerEvent(customerId: ID) : CustomerEvent
+}

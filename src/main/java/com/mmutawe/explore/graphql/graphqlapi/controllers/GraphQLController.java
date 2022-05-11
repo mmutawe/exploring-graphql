@@ -1,20 +1,24 @@
 package com.mmutawe.explore.graphql.graphqlapi.controllers;
 
+import com.mmutawe.explore.graphql.graphqlapi.dtos.CustomerEvent;
+import com.mmutawe.explore.graphql.graphqlapi.dtos.CustomerEventType;
 import com.mmutawe.explore.graphql.graphqlapi.entities.Customer;
 import com.mmutawe.explore.graphql.graphqlapi.entities.Order;
 import com.mmutawe.explore.graphql.graphqlapi.repositories.CustomerRepository;
 import lombok.AllArgsConstructor;
-import org.springframework.graphql.data.method.annotation.Argument;
-import org.springframework.graphql.data.method.annotation.MutationMapping;
-import org.springframework.graphql.data.method.annotation.QueryMapping;
-import org.springframework.graphql.data.method.annotation.SchemaMapping;
+import org.springframework.graphql.data.method.annotation.*;
 import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Stream;
+
+import static com.mmutawe.explore.graphql.graphqlapi.dtos.CustomerEventType.DELETED;
+import static com.mmutawe.explore.graphql.graphqlapi.dtos.CustomerEventType.UPDATED;
 
 @Controller
 @AllArgsConstructor
@@ -65,5 +69,21 @@ public class GraphQLController {
                         .lastName(lastName)
                         .build()
         );
+    }
+
+    @SubscriptionMapping
+    Flux<CustomerEvent> customerEvents(@Argument Long customerId){
+
+        return this.repository.findById(customerId)
+                .flatMapMany(customer -> {
+                    Stream<CustomerEvent> customerEventStream = Stream.generate(
+                            () -> CustomerEvent.builder()
+                                    .customer(customer)
+                                    .type(Math.random() > 0.5 ? DELETED : UPDATED)
+                                    .build());
+                    return Flux.fromStream(customerEventStream);
+                })
+                .delayElements(Duration.ofSeconds(3))
+                .take(10);
     }
 }
